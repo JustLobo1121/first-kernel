@@ -1,0 +1,10 @@
+
+unsigned char port_bytes_in(unsigned short port) {
+    unsigned char result;
+    __asm__("in %%dx, %%al": "=a" (result) : "d" (port));
+    return result;
+}
+
+void port_bytes_out(unsigned short port, unsigned char data) {
+    __asm__("out %%al, %%dx": :"a"(data),"d"(port));
+}

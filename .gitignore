@@ -1,0 +1,7 @@
+boot/*.bin
+cpu/*.o
+kernel/*.o
+kernel/*.bin
+drivers/*.o
+libc/*.o
+*.bin
