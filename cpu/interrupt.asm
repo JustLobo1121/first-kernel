@@ -1,14 +1,14 @@
 [bits 32]
 
-[extern keyboard_handler] 
+[extern timer_handler]
+[extern keyboard_handler]
 
 global isr32
 global isr33
 
 isr32:
     pusha
-    mov al, 0x20
-    out 0x20, al
+    call timer_handler
     popa
     iretd
 

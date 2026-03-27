@@ -1,8 +1,8 @@
-C_SOURCES = kernel/kernel.c drivers/ports.c cpu/idt.c cpu/isr.c drivers/keyboard.c libc/string.c drivers/speaker.c
-OBJ = kernel/kernel_entry.o kernel/kernel.o drivers/ports.o cpu/idt.o cpu/isr.o cpu/interrupt.o drivers/keyboard.o libc/string.o drivers/speaker.o
+C_SOURCES = kernel/kernel.c drivers/ports.c cpu/idt.c cpu/isr.c drivers/keyboard.c libc/string.c drivers/speaker.c drivers/timer.c
+OBJ = kernel/kernel_entry.o kernel/kernel.o drivers/ports.o cpu/idt.o cpu/isr.o cpu/interrupt.o drivers/keyboard.o libc/string.o drivers/speaker.o drivers/timer.o
 
 run: os_image.bin
-	qemu-system-x86_64 -drive format=raw,file=os_image.bin
+	qemu-system-x86_64 -drive format=raw,file=os_image.bin -audiodev pa,id=speaker -machine pcspk-audiodev=speaker
 
 os_image.bin: boot/boot.bin kernel/kernel.bin
 	cat boot/boot.bin kernel/kernel.bin > os_image.bin

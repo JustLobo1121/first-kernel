@@ -5,3 +5,4 @@ kernel/*.bin
 drivers/*.o
 libc/*.o
 *.bin
+.vscode/*
