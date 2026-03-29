@@ -1,8 +1,8 @@
-C_SOURCES = kernel/kernel.c drivers/ports.c cpu/idt.c cpu/isr.c drivers/keyboard.c libc/string.c drivers/speaker.c drivers/timer.c
-OBJ = kernel/kernel_entry.o kernel/kernel.o drivers/ports.o cpu/idt.o cpu/isr.o cpu/interrupt.o drivers/keyboard.o libc/string.o drivers/speaker.o drivers/timer.o
+C_SOURCES = kernel/kernel.c drivers/ports.c cpu/idt.c cpu/isr.c drivers/keyboard.c libc/string.c libc/mem.c drivers/speaker.c drivers/timer.c drivers/rtc.c cpu/paging.c drivers/disk.c drivers/pmm.c drivers/pci.c
+OBJ = kernel/kernel_entry.o kernel/kernel.o drivers/ports.o cpu/idt.o cpu/isr.o cpu/interrupt.o drivers/keyboard.o libc/string.o libc/mem.o drivers/speaker.o drivers/timer.o drivers/rtc.o cpu/paging.o drivers/disk.o drivers/pmm.o drivers/pci.o
 
 run: os_image.bin
-	qemu-system-x86_64 -drive format=raw,file=os_image.bin -audiodev pa,id=speaker -machine pcspk-audiodev=speaker
+	qemu-system-x86_64 -drive file=os_image.bin,format=raw,index=0,media=disk -audiodev pa,id=speaker -machine pcspk-audiodev=speaker
 
 os_image.bin: boot/boot.bin kernel/kernel.bin
 	cat boot/boot.bin kernel/kernel.bin > os_image.bin
@@ -12,7 +12,7 @@ kernel/kernel.bin: $(OBJ)
 	ld -m elf_i386 -Ttext 0x1000 --oformat binary $^ -o $@
 
 %.o: %.c
-	gcc -ffreestanding -m32 -fno-pie -c $< -o $@
+	gcc -ffreestanding -m32 -fno-pie -I include -c $< -o $@
 
 %.o: %.asm
 	nasm -f elf $< -o $@

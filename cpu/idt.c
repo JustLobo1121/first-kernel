@@ -1,4 +1,4 @@
-#include "../drivers/ports.h"
+#include "ports.h"
 #include "idt.h"
 
 struct idt_entry idt[IDT_ENTRIES];
