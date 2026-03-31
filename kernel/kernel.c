@@ -11,6 +11,7 @@
 #include "paging.h"
 #include "string.h"
 #include "mem.h"
+#include "vga.h"
 #define VIDEO_ADDRESS 0xb8000
 #define MAX_ROWS 25
 #define MAX_COLS 80
@@ -21,6 +22,10 @@
 #define VGA_RED 4
 #define VGA_WHITE 15
 #define GET_VGA_COLOR(bg, fg) ((bg << 4) | fg)
+extern void read_fs_info();
+extern void list_files();
+extern void create_dummy_file();
+extern void cat_file(char* filename);
 
 unsigned char current_color = 0x0f;
 int current_row=0;
@@ -181,7 +186,7 @@ void execute_command(char* input) {
     char* command = strtok(input, ' ');
 
     if (strcmp(command, "help") == 0) {
-        print("- commands: help, clear, beep, cpuinfo, uptime, time, sleep, lspci, alloc\n");
+        print("- commands: \nhelp, clear, beep, cpuinfo, uptime, time, sleep, lspci, alloc, crash, draw, fsinfo\n");
         print("- commands with args:\n echo [message], color [text], read [number], math [number] [operator] [number]\n");
     } else if (strcmp(command, "echo") == 0) {
         char* arg = strtok(0, ' ');
@@ -225,18 +230,26 @@ void execute_command(char* input) {
         if (sector_str == 0) {
             print("Error: missing args\n - use: read [number_of_sector]\n");
         } else {
-            int sector_number = sector_str[0] - '0'; 
-            print("reading the sector of the disk...\n");
+            int sector_number = atoi(sector_str);
+            print("Reading the sector of the disk...\n");
+            
             char sector_data[512]; 
             read_sector(sector_number, sector_data);
-            print("reading is finish. verifying disk firm...\n");
-            unsigned char byte_510 = sector_data[510];
-            unsigned char byte_511 = sector_data[511];
+            if (sector_number == 0) {
+                print("Reading complete. verifying firm the sector 0...\n");
+                unsigned char byte_510 = sector_data[510];
+                unsigned char byte_511 = sector_data[511];
 
-            if (byte_510 == 0x55 && byte_511 == 0xAA) {
-                print("¡SUCCESS! firm 0x55AA found in the sector.\n");
+                if (byte_510 == 0x55 && byte_511 == 0xAA) {
+                    print("¡SUCCESS! firm 0x55AA found (Bootloader validate).\n");
+                } else {
+                    print("Fail. firm not found of the bootloader.\n");
+                }
             } else {
-                print("Fail. not found the firm of the bloatware.\n");
+                print("content of the sector "); print(sector_str); print(":\n");                
+                sector_data[511] = '\0'; 
+                print(sector_data);
+                print("\n");
             }
         }
     } else if (strcmp(command, "math") == 0) {
@@ -254,8 +267,56 @@ void execute_command(char* input) {
                 char result_str[10];
                 itoa(result, result_str);
                 print("the result is: ");print(result_str);print("\n");
+            } else if (strcmp(arg2, "+") == 0) {
+                int result = arg1_num + arg2_num;
+                char result_str[10];
+                itoa(result, result_str);
+                print("the result is: ");print(result_str);print("\n");
+            } else if (strcmp(arg2, "-") == 0) {
+                int result = arg1_num - arg2_num;
+                char result_str[10];
+                itoa(result, result_str);
+                print("the result is: ");print(result_str);print("\n");
+            } else if (strcmp(arg2, "*") == 0) {
+                int result = arg1_num * arg2_num;
+                char result_str[10];
+                itoa(result, result_str);
+                print("the result is: ");print(result_str);print("\n");
             }
         }
+    } else if (strcmp(command, "write") == 0) {
+        char* sector_str = strtok(0, ' ');
+        char* text_to_write = strtok(0, '\0');
+
+        if (sector_str == 0 || text_to_write == 0) {
+            print("Error: missing args\n- use: write [sector] [text]\n");
+        } else {
+            int sector_number = atoi(sector_str);
+            char buffer[256];
+            for (int i=0; text_to_write[i] != '\0' && i<511; i++) {
+                buffer[i] = text_to_write[i];
+            }
+            write_sector(sector_number, buffer);
+            print("Data write permanently in the sector\n");
+        }
+    } else if (strcmp(command, "draw") == 0) {
+        draw_rectangle(10, 10, 50, 50, 40);
+    } else if (strcmp(command, "fsinfo") == 0) {
+        read_fs_info();
+    } else if (strcmp(command, "ls") == 0) {
+        list_files();
+    } else if (strcmp(command, "mkdummy") == 0) {
+        create_dummy_file();
+    } else if (strcmp(command, "cat") == 0) {
+        char* file_to_read = strtok(0, ' '); 
+        
+        if (file_to_read == 0) {
+            print("Error: missing args\n- use: cat [filename]\n");
+        } else {
+            cat_file(file_to_read);
+        }
+    } else if (strcmp(command, "crash") == 0) {
+        __asm__ volatile("int $0x0E");
     } else if (strcmp(command, "clear") == 0) {
         clear_screen();
     } else if (strcmp(command, "beep") == 0) {

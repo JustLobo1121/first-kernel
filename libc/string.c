@@ -21,6 +21,14 @@ int strncmp(char s1[], char s2[], int n) {
     return 0;
 }
 
+int strlen(char s[]) {
+    int i = 0;
+    while (s[i] != '\0') {
+        ++i;
+    }
+    return i;
+}
+
 char* strtok(char* str, char delim) {
     if (str != 0) {
         last_token = str;

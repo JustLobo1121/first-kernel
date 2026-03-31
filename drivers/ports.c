@@ -16,6 +16,10 @@ unsigned short port_word_in(unsigned short port) {
     return result;
 }
 
+void port_word_out(unsigned short port, unsigned short data) {
+    __asm__ volatile("outw %%ax, %%dx":: "a"(data), "d"(port));
+}
+
 unsigned int port_dword_in(unsigned int port) {
     unsigned int result;
     __asm__ volatile("inl %%dx, %%eax": "=a"(result): "d"(port));

@@ -4,5 +4,6 @@ kernel/*.o
 kernel/*.bin
 drivers/*.o
 libc/*.o
+fs/*.o
 *.bin
 .vscode/*

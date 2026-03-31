@@ -1,7 +1,13 @@
 #include "ports.h"
+#define NUM_COMMANDS 19
 
+char* os_commands[] = {
+    "echo", "color", "read", "math", "write", "draw", "fsinfo", "ls", "mkdummy", "cat", "crash",
+    "clear", "beep", "sleep", "cpuinfo", "uptime", "time", "alloc", "lspci"
+};
 extern void print_char(char message);
 extern void print(char* message, ...);
+extern int strncmp(char s1[], char s2[], int n);
 extern void execute_command(char* input);
 
 const char scancode_to_char[] = {
@@ -18,10 +24,23 @@ const char scancode_to_char_shift[] = {
     '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0, '*', 0, ' '
 };
 
+const char ascii_table[] = {
+    0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0,
+    0, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
+    0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
+    0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0,
+    '*', 0, ' '
+};
+
 int shift_pressed = 0;
 int caps_locks = 0;
 char key_buffer[256];
 int buffer_index = 0;
+
+char scanncode_to_ascii(unsigned char scanncode) {
+    if (scanncode > 58) return 0;
+    return ascii_table[scanncode];
+}
 
 void keyboard_handler() {
     unsigned char scancode = port_bytes_in(0x60);
@@ -66,4 +85,54 @@ void keyboard_handler() {
         }
     }
     port_bytes_out(0x20, 0x20);
+}
+
+void autocomplete_tab() {
+    if (buffer_index == 0) return;
+
+    key_buffer[buffer_index] = '\0';
+    for (int i=0; i<NUM_COMMANDS; i++) {
+        if (strncmp(key_buffer, os_commands[i], buffer_index) == 0) {
+            int total_len = strlen(os_commands[i]);
+            int missing = total_len - buffer_index;
+            
+            for (int j = 0; j < missing; j++) {
+                char letter = os_commands[i][buffer_index];
+                key_buffer[buffer_index] = letter;
+                buffer_index++;
+                
+                char str[2] = {letter, '\0'};
+                print(str); 
+            }
+            return;
+        }
+    }
+}
+
+void keyboard_callback() {
+    unsigned char scanncode = port_bytes_in(0x60);
+
+    if (scanncode == 0x1C) {
+        print("\n");
+        key_buffer[buffer_index] = '\0';
+        execute_command(key_buffer);
+
+        buffer_index = 0;
+        print("OS> ");
+    } else if (scanncode == 0x0E) {
+        if (buffer_index > 0) {
+            buffer_index--;
+            // make fun to backspace_onscreen
+        }
+    } else if (scanncode == 0x0F) {
+        autocomplete_tab();
+    } else {
+        char letter = scanncode_to_ascii(scanncode);
+        if (letter != 0 && buffer_index < 255) {
+            key_buffer[buffer_index] = letter;
+            buffer_index++;
+            char str[2] = {letter, '\0'};
+            print(str);
+        }
+    }
 }
