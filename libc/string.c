@@ -47,6 +47,7 @@ char* strtok(char* str, char delim) {
     }
     return token_start;
 }
+
 int atoi(char* str) {
     int res = 0;
     for (int i=0; str[i] != '\0'; i++) {
@@ -54,6 +55,37 @@ int atoi(char* str) {
     }
     return res;
 }
+
+void reverse(char str[], int length) {
+    int start = 0;
+    int end = length - 1;
+
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+}
+
+void itoa(int n, char str[]) {
+    int i = 0;
+    int is_negative = 0;
+    if (n < 0) {
+        is_negative = 1;
+        n = -n;
+    }
+    do {
+        str[i++] = (n % 10) + '0';
+    } while ((n/=10) > 0);
+
+    if (is_negative) str[i++]= '-';
+    str[i] = '\0';
+    reverse(str, i);
+}
+
+
 
 void hex_to_string(unsigned int n, char* str) {
     str[0] = '0'; str[1] = 'x';

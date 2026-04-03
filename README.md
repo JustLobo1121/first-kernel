@@ -1,47 +1,41 @@
-# Simple OS Kernel
+# Simple OS Kernel - "MyOS"
 
-This is a basic x86 operating system kernel written in C and Assembly.
+This is a 32-bit x86 operating system kernel written in C and Assembly from scratch. It features a modular architecture, custom hardware drivers, and a fully functional FAT16 File System.
 
-## Initial State
+## Features & Architecture
 
-Upon booting, the OS performs the following initialization sequence:
+* **Custom Bootloader:** Switches the CPU from 16-bit Real Mode to 32-bit Protected Mode and loads the kernel.
+* **Interrupt Handling (IDT/ISR):** Captures hardware interrupts and CPU exceptions (Kernel Panics, Page Faults).
+* **Memory Management:** * Physical Memory Manager (PMM) using a bitmap to allocate 4KB frames.
+* Dynamic Memory Allocation (Heap) with `kmalloc` and `kfree`.
+* **Hardware Drivers:**
+* **VGA Graphics:** Supports both Text Mode (`0xB8000`) and VGA Graphic Mode 13h (`0xA0000`) with a custom 8x8 Bitmap Font.
+* **Keyboard (IRQ 1):** Interactive shell with dynamic buffer, Backspace support, and `TAB` Autocompletion.
+* **Disk (ATA PIO):** Raw sector reading and writing.
+* **PCI Bus:** Device scanning and identification.
+* **RTC & Timer:** Real-Time Clock and PIT (Programmable Interval Timer) tracking.
+* **FAT16 File System:** * Reads the BIOS Parameter Block (BPB).
+* Parses the Root Directory.
+* Traverses the File Allocation Table (FAT) to read/write fragmented files across multiple clusters.
+* Supports creating directories and tracking file metadata (size, attributes).
+* **Modular Shell:** Command interpreter using an array of function pointers for easy scalability.
 
-1. **Boot Process**:
-   - The boot sector (`boot/boot.asm`) loads the kernel from disk into memory at address 0x1000.
-   - Sets up a Global Descriptor Table (GDT) for protected mode.
-   - Switches the CPU from 16-bit real mode to 32-bit protected mode.
-   - Jumps to the kernel entry point.
+## Available Commands
 
-2. **Kernel Initialization**:
-   - The kernel entry (`kernel/kernel_entry.asm`) calls the main kernel function.
-   - The main function (`kernel/kernel.c`) clears the screen and displays a black background.
-   - Installs Interrupt Service Routines (ISRs) for hardware interrupts.
-   - Remaps the Programmable Interrupt Controller (PIC) to handle interrupts starting from vector 32.
-   - Sets up IDT gates for timer (ISR 32) and keyboard (ISR 33) interrupts.
-   - Enables interrupts with `sti`.
-
-3. **Initial Display**:
-   - The screen is cleared to show a blank display.
-   - A command prompt "OS> " is printed, indicating the OS is ready for user input.
-
-At this point, the OS is in its initial state: a simple command-line interface waiting for keyboard input. The user can type commands and press Enter to execute them. Available commands include help, clear, matrix, beep, and sleep.
+* `help` - Shows available commands.
+* `ls` - Lists files and directories in the FAT16 volume.
+* `cat [file]` - Reads and prints a file following its FAT cluster chain.
+* `write [name] [ext] [content]` - Allocates free clusters and saves a new file to the disk.
+* `mkdir [name]` - Creates a new directory in the file system.
+* `clear`, `color` - Screen formatting.
+* `time`, `uptime`, `cpuinfo`, `lspci` - Hardware status.
+* `alloc`, `read`, `math`, `beep` - System utilities and tests.
 
 ## Building and Running
 
-Use the provided Makefile to build the OS image:
-- `make run` to build `os_image.bin` and run in QEMU emulator
-- `make clean` to clean build artifacts
-
-## Dependencies
-
-To build and run this OS in WSL (Windows Subsystem for Linux), install the following packages:
+Dependencies: `nasm`, `gcc` (32-bit cross-compiler), `binutils`, `qemu-system-x86`.
 
 ```bash
-sudo apt update
-sudo apt install nasm gcc binutils qemu-system-x86
+make clean
+make run
 ```
-
-- **nasm**: Assembler for the assembly (.asm) files
-- **gcc**: C compiler with 32-bit support for compiling the kernel code
-- **binutils**: Provides the linker (ld) for linking object files
-- **qemu-system-x86**: x86 emulator for running the OS image
