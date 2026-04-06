@@ -6,6 +6,7 @@ global isr14
 [extern isr14_handler]
 global isr32
 [extern timer_handler]
+[extern schedule]
 global isr33
 [extern keyboard_handler]
 global isr46
@@ -26,6 +27,10 @@ isr14:
 isr32:
     pusha
     call timer_handler
+    push esp
+    call schedule
+    add esp, 4
+    mov esp, eax
     popa
     iretd
 

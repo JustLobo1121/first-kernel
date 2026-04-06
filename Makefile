@@ -1,5 +1,6 @@
-C_SOURCES = kernel/kernel.c kernel/shell.c drivers/ports.c drivers/screen.c cpu/idt.c cpu/isr.c drivers/keyboard.c libc/string.c libc/mem.c drivers/speaker.c drivers/timer.c drivers/rtc.c cpu/paging.c drivers/disk.c drivers/pmm.c drivers/pci.c drivers/vga.c fs/fat16.c cpu/cpu_utils.c
-OBJ = kernel/kernel_entry.o kernel/kernel.o kernel/shell.o drivers/ports.o drivers/screen.o cpu/idt.o cpu/isr.o cpu/interrupt.o drivers/keyboard.o libc/string.o libc/mem.o drivers/speaker.o drivers/timer.o drivers/rtc.o cpu/paging.o drivers/disk.o drivers/pmm.o drivers/pci.o drivers/vga.o fs/fat16.o cpu/cpu_utils.o
+C_SOURCES = kernel/kernel.c kernel/shell.c drivers/ports.c drivers/screen.c cpu/idt.c cpu/isr.c drivers/keyboard.c libc/string.c libc/mem.c drivers/speaker.c drivers/timer.c drivers/rtc.c cpu/paging.c drivers/disk.c drivers/pmm.c drivers/pci.c drivers/vga.c fs/fat16.c cpu/cpu_utils.c cpu/task.c
+OBJ = kernel/kernel_entry.o kernel/kernel.o kernel/shell.o drivers/ports.o drivers/screen.o cpu/idt.o cpu/isr.o cpu/interrupt.o drivers/keyboard.o libc/string.o libc/mem.o drivers/speaker.o drivers/timer.o drivers/rtc.o cpu/paging.o drivers/disk.o drivers/pmm.o drivers/pci.o drivers/vga.o fs/fat16.o cpu/cpu_utils.o cpu/task.o
+
 run: os_image.bin
 	qemu-system-x86_64 -drive file=os_image.bin,format=raw,index=0,media=disk -audiodev pa,id=speaker -machine pcspk-audiodev=speaker
 

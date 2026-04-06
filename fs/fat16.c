@@ -5,23 +5,23 @@
 extern void print(char* message, ...);
 extern void itoa(int n, char str[]);
 extern int strlen(char s[]);
-unsigned short current_dir_sector = 0;
+unsigned short current_dir_cluster = 0;
 unsigned short get_next_cluster(unsigned short current_cluster);
 int cluster_to_sector(unsigned short cluster);
 
 void read_current_directory(char* buffer) {
-    if (current_dir_sector == 0) {
+    if (current_dir_cluster == 0) {
         read_sector(68, buffer);
     } else {
-        read_sector(cluster_to_sector(current_dir_sector), buffer);
+        read_sector(cluster_to_sector(current_dir_cluster), buffer);
     }
 }
 
 void write_current_directory(char* buffer) {
-    if (current_dir_sector == 0) {
+    if (current_dir_cluster == 0) {
         write_sector(68, buffer);
     } else {
-        write_sector(cluster_to_sector(current_dir_sector), buffer);
+        write_sector(cluster_to_sector(current_dir_cluster), buffer);
     }
 }
 
@@ -96,7 +96,7 @@ void list_files() {
     read_current_directory(buffer);
     dir_entry_t* entries = (dir_entry_t*) buffer;
 
-    if (current_dir_sector == 0) {
+    if (current_dir_cluster == 0) {
         print("\n--- ROOT DIR ---\n");
     } else {
         print("\n--- FOLDER DIR ---\n");
@@ -312,7 +312,7 @@ void make_directory(char* dirname) {
 
 void change_directory(char* dirname) {
     if (strcmp(dirname, "/") == 0 || strcmp(dirname, "..") == 0) {
-        current_dir_sector = 0;
+        current_dir_cluster = 0;
         print("current position: root directory\n");
         return;
     }
@@ -338,7 +338,7 @@ void change_directory(char* dirname) {
 
         if (is_match == 1) {
             if (entries[i].attributes == 0x10) {
-                current_dir_sector = entries[i].cluster_low;
+                current_dir_cluster = entries[i].cluster_low;
                 print("Entering the directory '"); print(dirname); print("'\n");
             } else {
                 print("Error: '"); print(dirname); print("' this is a file not a directory\n");

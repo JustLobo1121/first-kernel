@@ -2,12 +2,13 @@
 #include "screen.h"
 #include "string.h"
 #include "shell.h"
-#define NUM_COMMANDS 19
+#define NUM_COMMANDS 22
 
 char* os_commands[] = {
-    "help", "echo", "color", "read", "math", "write", "draw", "fsinfo", "ls", "mkdummy", "mkdir", "cat",
+    "help", "echo", "color", "read", "math", "write", "draw", "fsinfo", "ls", "mkdummy", "mkdir", "cd", "cat",
     "crash", "clear", "beep", "sleep", "cpuinfo", "uptime", "time", "alloc", "lspci"
 };
+
 extern void print_char(char message);
 extern void print(char* message, ...);
 extern int strncmp(char s1[], char s2[], int n);

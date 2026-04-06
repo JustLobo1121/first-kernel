@@ -22,14 +22,14 @@ VolumeID            dd 0x00000000
 VolumeLabel         db "MY_DISC    "
 FileSystem          db "FAT16   "
 
-KERNEL_OFFSET equ 0x1000
+KERNEL_OFFSET equ 0x10000
 
 start:
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov [BOOT_DRIVE], dl
-    mov bp, 0x9000
+    mov bp, 0x7C00
     mov sp, bp
     call load_kernel
     mov ah, 0x00
@@ -41,17 +41,22 @@ start:
     or eax, 0x1
     mov cr0, eax
     jmp dword CODE_SEG:init_pm 
+
 [bits 16]
 load_kernel:
-    mov bx, KERNEL_OFFSET
+    mov ax, 0x1000
+    mov es, ax
+    mov bx, 0x0000
     mov ah, 0x02
-    mov al, 45
+    mov al, 75
     mov ch, 0x00
     mov dh, 0x00
     mov cl, 0x02
     mov dl, [BOOT_DRIVE]
     int 0x13
     jc error_disc
+    xor ax, ax
+    mov es, ax
     ret
 error_disc:
     jmp $
@@ -93,6 +98,8 @@ init_pm:
     mov es, ax
     mov fs, ax
     mov gs, ax
+    mov ebp, 0x90000
+    mov esp, ebp
     call KERNEL_OFFSET
     jmp $
 times 510-($-$$) db 0
