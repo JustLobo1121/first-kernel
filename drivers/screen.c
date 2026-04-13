@@ -5,40 +5,43 @@
 #include "font.h"
 #include <stdarg.h>
 
-#define VGA_GRAPHIC_MEM 0xA0000
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 200
-#define MAX_COLS 40
-#define MAX_ROWS 25
-
-unsigned char current_color = 15;
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+#define FONT_SCALE 2 
+#define MAX_COLS (SCREEN_WIDTH / (8 * FONT_SCALE))
+#define MAX_ROWS (SCREEN_HEIGHT / (8 * FONT_SCALE))
+extern unsigned char* vga_mem;
+unsigned int current_color = 0x00FFFFFF;
 int current_col = 0;
 int current_row = 0;
 
 void update_cursor(int row, int col) {}
 
 void clear_screen() {
-    unsigned char* vga = (unsigned char*) VGA_GRAPHIC_MEM;
-    for (int i=0; i < SCREEN_WIDTH*SCREEN_HEIGHT; i++) {
-        vga[i] = 0;
+    if (vga_mem == 0) return;
+    for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT * 3; i++) {
+        vga_mem[i] = 0;
     }
     current_col = 0;
     current_row = 0;
 }
 
 void scroll_screen() {
-    unsigned char* vga = (unsigned char*) VGA_GRAPHIC_MEM;
-    for (int i=0; i < SCREEN_WIDTH* (SCREEN_HEIGHT - 8); i++) {
-        vga[i] = vga[i+2560];
+    if (vga_mem == 0) return;
+    int bytes_per_row = SCREEN_WIDTH * 3;
+    int row_size_bytes = bytes_per_row * (8 * FONT_SCALE); 
+    
+    for (int i = 0; i < (SCREEN_HEIGHT * bytes_per_row) - row_size_bytes; i++) {
+        vga_mem[i] = vga_mem[i + row_size_bytes];
     }
-    for (int i = SCREEN_WIDTH * (SCREEN_HEIGHT - 8); i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
-        vga[i] = 0;
+    for (int i = (SCREEN_HEIGHT * bytes_per_row) - row_size_bytes; i < SCREEN_HEIGHT * bytes_per_row; i++) {
+        vga_mem[i] = 0;
     }
-    current_row = MAX_ROWS - 1; 
+    current_row = MAX_ROWS - 1;
     current_col = 0;
 }
 
-void draw_char_graphic(char c, int x, int y, unsigned char color) {
+void draw_char_graphic(char c, int x, int y, unsigned int color) {
     if (c < 32 || c > 127) return;
 
     const unsigned char* glyph = font8x8[(int)c];
@@ -46,9 +49,9 @@ void draw_char_graphic(char c, int x, int y, unsigned char color) {
     for (int cy = 0; cy < 8; cy++) {
         for (int cx = 0; cx < 8; cx++) {
             if ((glyph[cy] >> (7 - cx)) & 1) {
-                put_pixel(x + cx, y + cy, color);
+                draw_rectangle(x + (cx * FONT_SCALE), y + (cy * FONT_SCALE), FONT_SCALE, FONT_SCALE, color);
             } else {
-                put_pixel(x + cx, y + cy, 0);
+                draw_rectangle(x + (cx * FONT_SCALE), y + (cy * FONT_SCALE), FONT_SCALE, FONT_SCALE, 0);
             }
         }
     }
@@ -61,8 +64,8 @@ void print_char(char c) {
     } else if (c == '\b') {
         backspace_on_screen();
     } else {
-        int pixel_x = current_col * 8;
-        int pixel_y = current_row * 8;
+        int pixel_x = current_col * (8 * FONT_SCALE);
+        int pixel_y = current_row * (8 * FONT_SCALE);
         
         draw_char_graphic(c, pixel_x, pixel_y, current_color);
         
@@ -73,9 +76,7 @@ void print_char(char c) {
         }
     }
 
-    if (current_row >= MAX_ROWS) {
-        scroll_screen();
-    }
+    if (current_row >= MAX_ROWS) scroll_screen();
 }
 
 void backspace_on_screen() {
@@ -86,10 +87,10 @@ void backspace_on_screen() {
         current_col = MAX_COLS - 1;
     }
     
-    int pixel_x = current_col * 8;
-    int pixel_y = current_row * 8;
+    int pixel_x = current_col * (8 * FONT_SCALE);
+    int pixel_y = current_row * (8 * FONT_SCALE);
     
-    draw_rectangle(pixel_x, pixel_y, 8, 8, 0);
+    draw_rectangle(pixel_x, pixel_y, 8 * FONT_SCALE, 8 * FONT_SCALE, 0);
 }
 
 void print(char* message, ...) {
@@ -115,6 +116,6 @@ void print(char* message, ...) {
     va_end(args);
 }
 
-void set_color(unsigned char color) {
+void set_color(unsigned int color) {
     current_color = color;
 }

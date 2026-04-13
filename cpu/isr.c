@@ -13,7 +13,9 @@ extern void isr0();
 extern void isr14();
 extern void isr32();
 extern void isr33();
+extern void isr44();
 extern void isr46();
+extern void isr128();
 extern void clear_screen();
 extern void print(char* message, ...);
 extern unsigned int current_color;
@@ -38,8 +40,8 @@ void pic_remap() {
     port_bytes_out(PIC1_DATA, ICW4_8086);
     port_bytes_out(PIC2_DATA, ICW4_8086);
 
-    port_bytes_out(PIC1_DATA, a1);
-    port_bytes_out(PIC2_DATA, a2);
+    port_bytes_out(PIC1_DATA, 0x00);
+    port_bytes_out(PIC2_DATA, 0x00);
 }
 
 void isr0_handler() {
@@ -60,6 +62,9 @@ void isr14_handler() {
     print("   The MMU try to read the memory with bad aligment or protected.\n");
     print("   The machine has been blocked per security.\n");
 }
+void isr128_handler() {
+    print("\n[KERNEL] Syscall 0x80 recived! the program says hi.\n");
+}
 
 void isr_install() {
     pic_remap();
@@ -67,6 +72,8 @@ void isr_install() {
     set_idt_gate(14, (unsigned int)isr14);
     set_idt_gate(32, (unsigned int)isr32);
     set_idt_gate(33, (unsigned int)isr33);
+    set_idt_gate(44, (unsigned int)isr44);
     set_idt_gate(46, (unsigned int)isr46);
+    set_idt_gate(128, (unsigned int)isr128);
     set_idt();
 }

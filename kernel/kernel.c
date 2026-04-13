@@ -4,6 +4,8 @@
 #include "mem.h"
 #include "timer.h"
 #include "task.h"
+#include "vga.h"
+extern void init_mouse();
 
 void task_a() {
     while (1) {
@@ -19,18 +21,15 @@ void task_b() {
 }
 
 void main() {
+    init_vga();
     clear_screen();
     isr_install();
     init_pmm();
     void* heap_start = pmm_alloc_frame();
     init_heap(heap_start, 4096);
     init_multitasking();
-    create_task(task_a);
-    create_task(task_b);
     init_timer(100);
+    init_mouse();
     __asm__ volatile("sti");
-    while (1) {
-        print("C");
-        for (volatile int i=0; i<5000000;i++);
-    }
+    print("OS> ");
 }

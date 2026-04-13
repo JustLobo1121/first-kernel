@@ -1,6 +1,8 @@
 #include "fat16.h"
 #include "disk.h"
 #include "string.h"
+#include "mem.h"
+#include "task.h"
 
 extern void print(char* message, ...);
 extern void itoa(int n, char str[]);
@@ -244,7 +246,7 @@ void write_file(char* filename, char* content) {
     entries[free_entry].size = strlen(content);
     entries[free_entry].attributes = 0x20;
     entries[free_entry].cluster_low = free_cluster;
-    write_sector(68, dir_buffer);
+    write_current_directory(dir_buffer);
 
     int target_sector = cluster_to_sector(free_cluster);
     char data_buffer[512];
@@ -295,7 +297,7 @@ void make_directory(char* dirname) {
     entries[free_entry].size = 0;
     entries[free_entry].attributes = 0x10;
     entries[free_entry].cluster_low = free_cluster;
-    write_sector(68, dir_buffer);
+    write_current_directory(dir_buffer);
 
     int target_sector = cluster_to_sector(free_cluster);
     char empty_cluster[512];
@@ -347,4 +349,85 @@ void change_directory(char* dirname) {
         }
     }
     print("Error: directory not found\n");
+}
+
+void remove_file(char* filename) {
+    char buffer[512];
+    read_current_directory(buffer);
+    dir_entry_t* entries = (dir_entry_t*) buffer;
+
+    char padded_name[8];
+    int len = strlen(filename);
+    for (int i=0; i<8; i++) padded_name[i] = (i<len) ? filename[i]: ' ';
+
+    for (int i = 0; i < 16; i++) {
+        if (entries[i].name[0] == 0x00) break;
+        if (entries[i].name[0] == 0xE5) continue;
+
+        int is_match = 1;
+        for (int j = 0; j < 8; j++) {
+            if (padded_name[j] != entries[i].name[j]) {
+                is_match = 0; break;
+            }
+        }
+
+        if (is_match == 1) {
+            unsigned short start_cluster = entries[i].cluster_low;
+            entries[i].name[0] = 0xE5;
+            write_current_directory(buffer);
+
+            if (start_cluster >= 2) {
+                char fat_table[512];
+                read_sector(50, fat_table);
+                unsigned short* fat_entries = (unsigned short*) fat_table;
+                
+                unsigned short current = start_cluster;
+                
+                while (current >= 2 && current < 0xFFF8) {
+                    unsigned short next_cluster = fat_entries[current];
+                    fat_entries[current] = 0x0000;
+                    current = next_cluster;
+                }
+                write_sector(50, fat_table);
+            }
+
+            print("file or directory '"); print(filename); print("' deleted.\n");
+            return;
+        }
+    }
+    print("Error: file not fount.\n");
+}
+
+void execute_program(char* filename) {
+    char buffer[512];
+    read_current_directory(buffer);
+    dir_entry_t* entries = (dir_entry_t*) buffer;
+
+    char padded_name[8];
+    int len = strlen(filename);
+    for (int i=0; i<8; i++) padded_name[i] = (i<len) ? filename[i]: ' ';
+
+    for (int i = 0; i < 16; i++) {
+        if (entries[i].name[0] == 0x00) break;
+        if (entries[i].name[0] == 0xE5) continue;
+
+        int is_match = 1;
+        for (int j = 0; j < 8; j++) {
+            if (padded_name[j] != entries[i].name[j]) {
+                is_match = 0; break;
+            }
+        }
+
+        if (is_match == 1) {
+            unsigned short cluster = entries[i].cluster_low;
+            char* app_memory = (char*) kmalloc(512);
+            int target_sector = cluster_to_sector(cluster);
+            read_sector(target_sector, app_memory);
+            create_task((void (*)()) app_memory);
+            
+            print("running '"); print(filename); print("' in the background...\n");
+            return;
+        }
+    }
+    print("Error: Program not found.\n");
 }

@@ -16,6 +16,8 @@ extern void create_dummy_file();
 extern void make_directory(char* dirname);
 extern void cat_file(char* filename);
 extern void change_directory(char* dirname);
+extern void remove_file(char* filename);
+extern void execute_program(char* filename);
 void write_file(char* filename, char* content);
 
 void cmd_help();
@@ -40,6 +42,9 @@ void cmd_uptime();
 void cmd_time();
 void cmd_alloc();
 void cmd_lspci();
+void cmd_rm();
+void cmd_run();
+void cmd_mkapp();
 
 typedef void (*command_func)();
 
@@ -71,7 +76,10 @@ command_t commands[] = {
 {"uptime", cmd_uptime, "return time since system bootup"},
 {"time", cmd_time, "return the local time of hardwar"},
 {"alloc", cmd_alloc, "make an reserve of memory"},
-{"lspci", cmd_lspci, "return the pci buses available"}
+{"lspci", cmd_lspci, "return the pci buses available"},
+{"rm", cmd_rm, "delete a file or directory from the disk"},
+{"run", cmd_run, "execute a program"},
+{"mkapp", cmd_mkapp, "make a executeable progrma"}
 };
 #define NUM_SHELL_COMMAND (sizeof(commands) / sizeof(command_t))
 
@@ -96,7 +104,7 @@ void cmd_help() {
     for (int i=0; i<NUM_SHELL_COMMAND;i++) {
         print("- ");
         print(commands[i].name);
-        print(" : ");
+        print(": ");
         print(commands[i].description);
         print("\n");
     }
@@ -112,25 +120,18 @@ void cmd_echo() {
     print("\n");
 }
 void cmd_color() {
-    // char* bg_str = strtok(0, ' ');
     char* fg_str = strtok(0, ' ');
-    if (/*bg_str == 0 || */ fg_str == 0) {
-        print("Error: missing agrs\n- use: color [font:cyan|green|red|blue|white]\n");
+    if (fg_str == 0) {
+        print("Error: missing agrs\n- use: color [cyan|green|red|blue|white]\n");
     } else {
-        // unsigned char bg_color = VGA_BLACK;
-        unsigned char fg_color = VGA_WHITE;
-        // background colors
-        // if (strcmp(bg_str, "cyan") == 0) bg_color = VGA_CYAN;
-        // if (strcmp(bg_str, "green") == 0) bg_color = VGA_GREEN;
-        // if (strcmp(bg_str, "red") == 0) bg_color = VGA_RED;
-        // if (strcmp(bg_str, "blue") == 0) bg_color = VGA_BLUE;
-        // if (strcmp(bg_str, "white") == 0) bg_color = VGA_WHITE;
-        // fonts colors
-        if (strcmp(fg_str, "cyan") == 0) fg_color = VGA_CYAN;
-        if (strcmp(fg_str, "green") == 0) fg_color = VGA_GREEN;
-        if (strcmp(fg_str, "red") == 0) fg_color = VGA_RED;
-        if (strcmp(fg_str, "blue") == 0) fg_color = VGA_BLUE;
-        if (strcmp(fg_str, "white") == 0) fg_color = VGA_WHITE;
+        unsigned int fg_color = COLOR_WHITE;
+        
+        if (strcmp(fg_str, "cyan") == 0) fg_color = COLOR_CYAN;
+        if (strcmp(fg_str, "green") == 0) fg_color = COLOR_GREEN;
+        if (strcmp(fg_str, "red") == 0) fg_color = COLOR_RED;
+        if (strcmp(fg_str, "blue") == 0) fg_color = COLOR_BLUE;
+        if (strcmp(fg_str, "white") == 0) fg_color = COLOR_WHITE;
+        
         set_color(fg_color);
         clear_screen();
         print("- color has been update\n");
@@ -253,8 +254,12 @@ void cmd_cd() {
     }
     change_directory(dirname);
 }
-void cmd_crash() { __asm__ volatile("int $0x0E"); }
-void cmd_clear() { clear_screen(); }
+void cmd_crash() {
+    __asm__ volatile("int $0x0E");
+}
+void cmd_clear() {
+    clear_screen();
+}
 void cmd_beep() {
     print("Emitiendo pitido en el hardware...\n");
     beep();
@@ -264,7 +269,9 @@ void cmd_sleep() {
     print("stop getting any interrups\n");
     __asm__ volatile("cli; hlt");
 }
-void cmd_cpuinfo() { get_cpu_info(); }
+void cmd_cpuinfo() {
+    get_cpu_info();
+}
 void cmd_uptime() {
     unsigned int seconds = get_uptime_second();
     char str_seconds[32];
@@ -273,7 +280,9 @@ void cmd_uptime() {
     print(str_seconds);
     print(" seconds on\n");
 }
-void cmd_time() { print_time(); }
+void cmd_time() {
+    print_time();
+}
 void cmd_alloc() {
     void* ptr = pmm_alloc_frame();
     if (ptr == 0) {
@@ -286,4 +295,27 @@ void cmd_alloc() {
         print("\n");
     }
 }
-void cmd_lspci() { check_all_pci_buses(); }
+void cmd_lspci() { 
+    check_all_pci_buses();
+}
+void cmd_rm() {
+    char* target = strtok(0, ' ');
+    if (target == 0) {
+        print("Error: missing args.\nUse: rm [name]\n");
+        return;
+    }
+    remove_file(target);
+}
+void cmd_run() {
+    char* target = strtok(0, ' ');
+    if (target == 0) {
+        print("Use: run [name]\n");
+        return;
+    }
+    execute_program(target);
+}
+void cmd_mkapp() {
+    char app_code[5] = { 0xCD, 0x80, 0xEB, 0xFE, 0x00 };
+    write_file("APP     BIN", app_code); 
+    print("Program compiled and installed as APP.BIN\n");
+}

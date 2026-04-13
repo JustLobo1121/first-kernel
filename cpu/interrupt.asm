@@ -9,8 +9,11 @@ global isr32
 [extern schedule]
 global isr33
 [extern keyboard_handler]
+global isr44
+[extern mouse_handler]
 global isr46
-
+global isr128
+[extern isr128_handler]
 
 isr0:
     cli
@@ -40,10 +43,22 @@ isr33:
     popa
     iretd
 
+isr44:
+    pusha
+    call mouse_handler
+    popa
+    iretd
+
 isr46:
     pusha
     mov al, 0x20
     out 0xA0, al 
     out 0x20, al 
+    popa
+    iretd
+
+isr128:
+    pusha
+    call isr128_handler
     popa
     iretd

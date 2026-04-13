@@ -32,8 +32,12 @@ start:
     mov bp, 0x7C00
     mov sp, bp
     call load_kernel
-    mov ah, 0x00
-    mov al, 0x13
+    mov ax, 0x4F01
+    mov cx, 0x115
+    mov di, 0x5000
+    int 0x10
+    mov ax, 0x4F02
+    mov bx, 0x4115
     int 0x10
     cli
     lgdt [gdt_descriptor]
