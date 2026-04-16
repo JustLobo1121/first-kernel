@@ -5,6 +5,7 @@
 #include "timer.h"
 #include "task.h"
 #include "vga.h"
+#include "gdt.h"
 extern void init_mouse();
 
 void task_a() {
@@ -23,6 +24,7 @@ void task_b() {
 void main() {
     init_vga();
     clear_screen();
+    init_gdt();
     isr_install();
     init_pmm();
     void* heap_start = pmm_alloc_frame();

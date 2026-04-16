@@ -45,6 +45,7 @@ void cmd_lspci();
 void cmd_rm();
 void cmd_run();
 void cmd_mkapp();
+void cmd_kmsg();
 
 typedef void (*command_func)();
 
@@ -79,7 +80,8 @@ command_t commands[] = {
 {"lspci", cmd_lspci, "return the pci buses available"},
 {"rm", cmd_rm, "delete a file or directory from the disk"},
 {"run", cmd_run, "execute a program"},
-{"mkapp", cmd_mkapp, "make a executeable progrma"}
+{"mkapp", cmd_mkapp, "make a executeable progrma"},
+{"kmsg", cmd_kmsg, "show the event register and start of the kernel"}
 };
 #define NUM_SHELL_COMMAND (sizeof(commands) / sizeof(command_t))
 
@@ -318,4 +320,7 @@ void cmd_mkapp() {
     char app_code[5] = { 0xCD, 0x80, 0xEB, 0xFE, 0x00 };
     write_file("APP     BIN", app_code); 
     print("Program compiled and installed as APP.BIN\n");
+}
+void cmd_kmsg() {
+    dump_kernel_log();
 }

@@ -2,11 +2,11 @@
 #include "screen.h"
 #include "string.h"
 #include "shell.h"
-#define NUM_COMMANDS 25
+#define NUM_COMMANDS 26
 
 char* os_commands[] = {
     "help", "echo", "color", "read", "math", "write", "draw", "fsinfo", "ls", "mkdummy", "mkdir", "cd", "cat",
-    "crash", "clear", "beep", "sleep", "cpuinfo", "uptime", "time", "alloc", "lspci", "rm", "run", "mkapp"
+    "crash", "clear", "beep", "sleep", "cpuinfo", "uptime", "time", "alloc", "lspci", "rm", "run", "mkapp", "kmsg"
 };
 
 extern void print_char(char message);
@@ -20,7 +20,6 @@ const char scancode_to_char[] = {
     0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0,
     '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' '
 };
-
 const char scancode_to_char_shift[] = {
     0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
     '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
@@ -32,6 +31,8 @@ int shift_pressed = 0;
 int caps_locks = 0;
 char key_buffer[256];
 int buffer_index = 0;
+char last_command[256];
+int last_command_len = 0;
 
 void autocomplete_tab() {
     if (buffer_index == 0) return;
@@ -62,6 +63,23 @@ void keyboard_handler() {
         port_bytes_out(0x20, 0x20);
         return;
     }
+
+    if (scancode == 0x48 && last_command_len > 0) {
+        while (buffer_index > 0) {
+            print_char ('\b');
+            buffer_index--;
+        }
+        for (int i=0; i<last_command_len; i++) {
+            key_buffer[i] = last_command[i];
+            print_char(key_buffer[i]);
+        }
+        buffer_index = last_command_len;
+        key_buffer[buffer_index] = '\0';
+
+        port_bytes_out(0x20,0x20);
+        return;
+    }
+
     if (scancode == 0x2A || scancode == 0x36) {
         shift_pressed = 1;
     } else if (scancode == 0xAA || scancode == 0xB6) {
@@ -83,6 +101,12 @@ void keyboard_handler() {
         if (final_char == '\n') {
             print_char('\n');
             key_buffer[buffer_index] = '\0';
+            if (buffer_index > 0) {
+                for(int i = 0; i <= buffer_index; i++) {
+                    last_command[i] = key_buffer[i];
+                }
+                last_command_len = buffer_index;
+            }
             execute_command(key_buffer);
             key_buffer[0] = '\0';
             buffer_index = 0;

@@ -10,12 +10,26 @@
 #define FONT_SCALE 2 
 #define MAX_COLS (SCREEN_WIDTH / (8 * FONT_SCALE))
 #define MAX_ROWS (SCREEN_HEIGHT / (8 * FONT_SCALE))
+#define KLOG_SIZE 4096
+char klog_buffer[KLOG_SIZE];
+int klog_index = 0;
+int klog_wrapped = 0;
+int dmesg_active = 0;
 extern unsigned char* vga_mem;
 unsigned int current_color = 0x00FFFFFF;
 int current_col = 0;
 int current_row = 0;
 
 void update_cursor(int row, int col) {}
+
+void log_char(char c) {
+    if (dmesg_active) return;
+    klog_buffer[klog_index++] = c;
+    if (klog_index >= KLOG_SIZE) {
+        klog_index = 0;
+        klog_wrapped = 1;
+    }
+}
 
 void clear_screen() {
     if (vga_mem == 0) return;
@@ -58,6 +72,8 @@ void draw_char_graphic(char c, int x, int y, unsigned int color) {
 }
 
 void print_char(char c) {
+    log_char(c);
+
     if (c == '\n') {
         current_row++;
         current_col = 0;
@@ -114,6 +130,23 @@ void print(char* message, ...) {
         i++;
     }
     va_end(args);
+}
+
+void dump_kernel_log() {
+    dmesg_active = 1;
+    print("\n--- start of the kernel log (dmesg) ---\n");
+
+    if (klog_wrapped) {
+        for (int i=0; i<KLOG_SIZE; i++) {
+            print_char(klog_buffer[i]);
+        }
+    }
+    for (int i=0;i<klog_index; i++) {
+        print_char(klog_buffer[i]);
+    }
+
+    print("\n--- end of the kernel log ---\n");
+    dmesg_active = 0;
 }
 
 void set_color(unsigned int color) {

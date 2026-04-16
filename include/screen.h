@@ -14,5 +14,6 @@ void print(char* message, ...);
 void print_char(char c);
 void backspace_on_screen();
 void set_color(unsigned int color);
+void dump_kernel_log();
 
 #endif
