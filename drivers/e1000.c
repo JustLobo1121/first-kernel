@@ -2,9 +2,22 @@
 #include "ports.h"
 
 extern void hex_to_string(unsigned int val, char* dest);
-
 unsigned int e1000_mmio_base = 0;
 unsigned char mac_address[6];
+
+struct e1000_tx_desc {
+    unsigned long long buffer_addr;
+    unsigned short length;
+    unsigned char cso;
+    unsigned char cmd;
+    unsigned char status;
+    unsigned char css;
+    unsigned short special;
+} __attribute__((packed));
+
+#define TX_DESC_COUNT 8
+struct e1000_tx_desc tx_ring[TX_DESC_COUNT] __attribute__((aligned(16)));
+unsigned char tx_buffers[TX_DESC_COUNT][2048];
 
 unsigned int pci_read_dword(unsigned char bus, unsigned char slot, unsigned char func, unsigned char offset) {
     unsigned int address = (unsigned int)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | 0x80000000);
@@ -28,25 +41,6 @@ void e1000_write_reg(unsigned short offset, unsigned int value) {
     *reg = value;
 }
 
-void print_mac_byte(unsigned char byte) {
-    unsigned int mac_low = e1000_read_reg(0x5400);
-    unsigned int mac_high = e1000_read_reg(0x5404);
-
-    char str_low[11];
-    char str_high[11];
-
-    hex_to_string(mac_low, str_low);
-    hex_to_string(mac_high, str_high);
-
-    print("MAC RAL0 (Low) : ");
-    print(str_low);
-    print("\n");
-
-    print("MAC RAH0 (High): ");
-    print(str_high);
-    print("\n");
-}
-
 void read_mac_address() {
     unsigned int mac_low = e1000_read_reg(0x5400);
     unsigned int mac_high = e1000_read_reg(0x5404);
@@ -58,9 +52,35 @@ void read_mac_address() {
     mac_address[4] = mac_high & 0xFF;
     mac_address[5] = (mac_high >> 8) & 0xFF;
 
-    print("mac address: \n");
-    print_mac_byte(1);
-    // print("\n");
+    print("mac address:\n");
+    char hex_str[11];
+    for (int i = 0; i < 6; i++) {
+        hex_to_string(mac_address[i], hex_str);
+        print(hex_str + 8);
+        if (i < 5) print(":");
+    }
+    print("\n");
+}
+
+void e1000_init_tx() {
+    print("initializing transmission ring (TX)...\n");
+
+    for (int i = 0; i < TX_DESC_COUNT; i++) {
+        tx_ring[i].buffer_addr = (unsigned int)tx_buffers[i];
+        tx_ring[i].length = 0;
+        tx_ring[i].cmd = 0;
+        tx_ring[i].status = 0;
+    }
+
+    e1000_write_reg(0x3800, (unsigned int)tx_ring);
+    e1000_write_reg(0x3804, 0);
+    e1000_write_reg(0x3808, TX_DESC_COUNT * 16);
+    e1000_write_reg(0x3810, 0);
+    e1000_write_reg(0x3818, 0);
+    unsigned int tctl = (1 << 1) | (1 << 3) | (0x0F << 4) | (0x3F << 12);
+    e1000_write_reg(0x0400, tctl);
+
+    print("TX motor on and descriptors mapped.\n");
 }
 
 void init_E1000() {
@@ -88,12 +108,12 @@ void init_E1000() {
         return;
     }
 
-     unsigned int bar0 = pci_read_dword(target_bus, target_slot, 0, 0x10);
-     unsigned int mmio_address = bar0 & 0xFFFFFFF0;
+    unsigned int bar0 = pci_read_dword(target_bus, target_slot, 0, 0x10);
+    unsigned int mmio_address = bar0 & 0xFFFFFFF0;
 
-     unsigned int pci_command = pci_read_dword(target_bus, target_slot, 0, 0x04);
-     pci_command |= (1 << 2) | (1 << 1) | (1 << 10); 
-     pci_write_dword(target_bus, target_slot, 0, 0x04, pci_command);
+    unsigned int pci_command = pci_read_dword(target_bus, target_slot, 0, 0x04);
+    pci_command |= (1 << 2) | (1 << 1) | (1 << 10); 
+    pci_write_dword(target_bus, target_slot, 0, 0x04, pci_command);
  
     e1000_mmio_base = mmio_address;
  
@@ -108,4 +128,5 @@ void init_E1000() {
     print("MMIO Base: "); print(hex_address); print("\n");
 
     read_mac_address();
+    e1000_init_tx();
 }
